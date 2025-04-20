@@ -7,7 +7,7 @@ pipeline {
     environment  {
         SCANNER_HOME=tool 'sonar-scanner'
         AWS_ACCOUNT_ID = credentials('ACCOUNT_ID')
-        AWS_ECR_REPO_NAME = credentials('ECR_REPO2')
+        AWS_ECR_REPO_NAME = credentials('frontend')
         AWS_DEFAULT_REGION = 'us-east-1'
         REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/"
     }
@@ -19,16 +19,16 @@ pipeline {
         }
         stage('Checkout from Git') {
             steps {
-                git credentialsId: 'GITHUB', url: 'https://repo-dev.efi-academy.com/houcem/end-to-end-kubernetes-three-tier-devsecops-project-houcem.git'
+                git credentialsId: 'GITHUB', url: 'https://repo-dev.efi-academy.com/azerty/devsecops-project2.git'
             }
         }
         stage('Sonarqube Analysis') {
             steps {
-                dir('Application-Code/backend') {
+                dir('Application-Code/frontend') {
                     withSonarQubeEnv('sonar-server') {
                         sh ''' $SCANNER_HOME/bin/sonar-scanner \
-                        -Dsonar.projectName=three-tier-backend \
-                        -Dsonar.projectKey=three-tier-backend '''
+                        -Dsonar.projectName=three-frontend \
+                        -Dsonar.projectKey=three-frontend '''
                     }
                 }
             }
@@ -36,13 +36,13 @@ pipeline {
         stage('Quality Check') {
             steps {
                 script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token' 
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonarkey' 
                 }
             }
         }
         stage('OWASP Dependency-Check Scan') {
             steps {
-                dir('Application-Code/backend') {
+                dir('Application-Code/frontend') {
                     dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
                     dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
                 }
@@ -50,7 +50,7 @@ pipeline {
         }
         stage('Trivy File Scan') {
             steps {
-                dir('Application-Code/backend') {
+                dir('Application-Code/frontend') {
                     sh 'trivy fs . > trivyfs.txt'
                 }
             }
@@ -58,7 +58,7 @@ pipeline {
         stage("Docker Image Build") {
             steps {
                 script {
-                    dir('Application-Code/backend') {
+                    dir('Application-Code/frontend') {
                             sh 'docker system prune -f'
                             sh 'docker container prune -f'
                             sh 'docker build -t ${AWS_ECR_REPO_NAME} .'
@@ -82,23 +82,23 @@ pipeline {
         }
         stage('Checkout Code') {
             steps {
-                git credentialsId: 'GITHUB', url: 'https://repo-dev.efi-academy.com/houcem/end-to-end-kubernetes-three-tier-devsecops-project-houcem.git'
+                git credentialsId: 'github', url: 'https://repo-dev.efi-academy.com/azerty/devsecops-project2.git'
             }
         }
         stage('Update Deployment file') {
             environment {
                 GIT_REPO_NAME = "End-to-End-Kubernetes-Three-Tier-DevSecOps-Project"
-                GIT_USER_NAME = "houcem"
+                GIT_USER_NAME = "amine7777777chabane"
             }
             steps {
-                dir('Kubernetes-Manifests-file/Backend') {
+                dir('Kubernetes-Manifests-file/Frontend') {
                     withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                         sh '''
-                            git config user.email "houcemkhlifi.devops@gmail.com"
-                            git config user.name "houcem"
+                            git config user.email "aminechabane7@hotmail.com"
+                            git config user.name "amine7777777chabane"
                             BUILD_NUMBER=${BUILD_NUMBER}
                             echo $BUILD_NUMBER
-                            imageTag=$(grep -oP '(?<=backend:)[^ ]+' deployment.yaml)
+                            imageTag=$(grep -oP '(?<=frontend:)[^ ]+' deployment.yaml)
                             echo $imageTag
                             sed -i "s/${AWS_ECR_REPO_NAME}:${imageTag}/${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}/" deployment.yaml
                             git add deployment.yaml
