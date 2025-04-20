@@ -19,7 +19,7 @@ pipeline {
         }
         stage('Checkout from Git') {
             steps {
-                git credentialsId: 'GITHUB', url: 'https://gitlab.com/houcemkhlifi.devops/end-to-end-kubernetes-three-tier-devsecops-project-houcem.git'
+                git credentialsId: 'GITHUB', url: 'https://repo-dev.efi-academy.com/azerty/devsecops-project2.git'
             }
         }
         stage('Sonarqube Analysis') {
